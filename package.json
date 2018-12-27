@@ -1,0 +1,50 @@
+{
+  "name": "xalwatcher",
+  "preferGlobal": true,
+  "version": "0.0.1-alpha.1",
+  "description": "XALWatcher is a file watcher",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "./build.sh",
+    "push": "./build.sh && npm publish",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Alexandru Prisacariu",
+  "license": "MIT",
+  "dependencies": {
+    "@babel/runtime-corejs2": "^7.2.0",
+    "colors": "^1.3.3",
+    "console-clear": "^1.1.1",
+    "js-yaml": "^3.12.0",
+    "yargs": "^12.0.5"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.2.0",
+    "@babel/core": "^7.2.0",
+    "@babel/node": "^7.2.0",
+    "@babel/plugin-proposal-class-properties": "^7.2.1",
+    "@babel/plugin-syntax-async-generators": "^7.2.0",
+    "@babel/plugin-syntax-dynamic-import": "^7.2.0",
+    "@babel/plugin-syntax-object-rest-spread": "^7.2.0",
+    "@babel/plugin-transform-regenerator": "^7.0.0",
+    "@babel/plugin-transform-runtime": "^7.2.0",
+    "@babel/preset-env": "^7.2.0",
+    "babel-plugin-module-resolver": "^3.1.1"
+  },
+  "directories": {
+    "bin": "./bin"
+  },
+  "bin": {
+    "xalpm": "./bin/xalwatcher"
+  },
+  "bugs": {
+    "url": "https://gitlab.com/AlexxanderX/xalwatcher/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@gitlab.com:AlexxanderX/xalwatcher.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
