@@ -57,7 +57,7 @@ var argv = require("yargs").option("config", {
 _asyncToGenerator(
 /*#__PURE__*/
 regeneratorRuntime.mark(function _callee() {
-  var config, OPTION_PATH, OPTION_IGNORE, OPTION_BEFORE, OPTION_EXECUTE, OPTION_ENV, OPTION_COLORS, requiredOptions, allOptions, APPS_KEYS, filesHistory, execs, appColors, draw, spawnApp, execute, onChanged, watchForEach;
+  var config, OPTION_PATH, OPTION_IGNORE, OPTION_BEFORE, OPTION_EXECUTE, OPTION_ENV, OPTION_COLORS, requiredOptions, allOptions, APPS_KEYS, filesHistory, execs, appColors, draw, spawnApp, execute, lastChangedFilenameDate, onChanged, watchForEach;
   return regeneratorRuntime.wrap(function _callee$(_context) {
     while (1) {
       switch (_context.prev = _context.next) {
@@ -92,7 +92,8 @@ regeneratorRuntime.mark(function _callee() {
           };
 
           onChanged = function _ref5(filename, root) {
-            if (filesHistory.length && Date.now() - filesHistory[0][1].getTime() < 50) return;
+            if (Date.now() - lastChangedFilenameDate < 50) return;
+            lastChangedFilenameDate = Date.now();
             if (config[OPTION_IGNORE] && (config[OPTION_IGNORE].includes(root) || config[OPTION_IGNORE].includes(_path.default.join(root || "", filename)))) return;
             if (filesHistory.length == 3) filesHistory.pop();
             filesHistory.splice(0, 0, [filename, new Date()]);
@@ -223,11 +224,12 @@ regeneratorRuntime.mark(function _callee() {
             });
           }
 
+          lastChangedFilenameDate = 0;
           watchForEach(config[OPTION_PATH]);
           draw();
           execute();
 
-        case 30:
+        case 31:
         case "end":
           return _context.stop();
       }
