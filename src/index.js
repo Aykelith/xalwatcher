@@ -4,7 +4,7 @@ import yaml from "js-yaml";
 import path from "path";
 import colors from "colors";
 import clear from "console-clear";
-import { execSync, spawn, exec } from "child_process"; 
+import { spawn, exec } from "child_process"; 
 
 const argv = require("yargs")
     .option("config", { alias: "c", demandOption: true, type: "string" })
@@ -14,167 +14,286 @@ const argv = require("yargs")
     .argv;
 
 (async () => {
-    if (!fs.existsSync(argv.config)) {
-        console.error("Path doesn't exists");
-        process.exit(1);
-    }
-    
-    let config = null;
     try {
-        config = yaml.safeLoad(fs.readFileSync(argv.config, "utf8"));
-    } catch (error) {
-        console.error(error);
-        process.exit(1);
-    }
+        if (process.env.XAL_DEBUG) {
+            console.debug = console.log;
+        } else {
+            console.debug = {};
+        }
 
-    const OPTION_PATH = "path";
-    const OPTION_IGNORE = "ignore";
-    const OPTION_BEFORE = "before";
-    const OPTION_EXECUTE = "execute";
-    const OPTION_ENV = "env";
-    const OPTION_COLORS = "colors";
-
-    const requiredOptions = [OPTION_PATH, OPTION_EXECUTE];
-    const allOptions      = [...requiredOptions, OPTION_IGNORE, OPTION_BEFORE, OPTION_ENV, OPTION_COLORS];
-
-    requiredOptions.forEach(option => {
-        if (!config[option]) {
-            console.error(`The option "${option}" from config is missing`);
+        if (!fs.existsSync(argv.config)) {
+            console.error("Path doesn't exists");
             process.exit(1);
         }
-    });
-
-    Object.keys(config).forEach(option => {
-        if (!allOptions.includes(option)) {
-            console.error(`The option "${option}" from config is unknown`);
+        
+        let config = null;
+        try {
+            config = yaml.safeLoad(fs.readFileSync(argv.config, "utf8"));
+        } catch (error) {
+            console.error(error);
             process.exit(1);
         }
-    });
 
-    if (config[OPTION_BEFORE] && !Array.isArray(config[OPTION_BEFORE])) config[OPTION_BEFORE] = [ config[OPTION_BEFORE] ];
+        //= Top-level options ==========================================================================================
+        const OPTION_PATH = "path";
+        const OPTION_IGNORE = "ignore";
+        const OPTION_BEFORE = "before";
+        const OPTION_EXECUTE = "execute";
+        const OPTION_ENV = "env";
+        const OPTION_ONCE = "once";
 
-    if (typeof config[OPTION_EXECUTE] === "string") config[OPTION_EXECUTE] = { APP: config[OPTION_EXECUTE] };
-    const APPS_KEYS = Object.keys(config[OPTION_EXECUTE]);
-    
-    if (config[OPTION_ENV]) {
-        if (config[OPTION_ENV].PATH) {
-            if (!path.isAbsolute(config[OPTION_ENV].PATH)) config[OPTION_ENV].PATH = path.join(path.dirname(argv.config), config[OPTION_ENV].PATH);
-            config[OPTION_ENV].PATH = `${config[OPTION_ENV].PATH}:${process.env.PATH}`;
-        }
+        const requiredOptions = [OPTION_PATH, OPTION_EXECUTE];
+        const allOptions      = [...requiredOptions, OPTION_IGNORE, OPTION_BEFORE, OPTION_ENV, OPTION_ONCE];
+        //==============================================================================================================
 
-        process.env = Object.assign(process.env, config[OPTION_ENV]);
-    }
+        // Check if an options is missing
+        requiredOptions.forEach(option => {
+            if (!config[option]) {
+                console.error(`The option "${option}" from config is missing`);
+                process.exit(1);
+            }
+        });
 
-    if (argv.env) {
-        argv.env.forEach(env => {
-            let split = env.split("=");
-            process.env[split[0]] = split[1];
+        // Set the working directory to the directory that contains the config file
+        process.chdir(path.dirname(argv.config));
+
+        // Check if there are unknown options in the config
+        Object.keys(config).forEach(option => {
+            if (!allOptions.includes(option)) {
+                console.error(`The option "${option}" from config is unknown`);
+                process.exit(1);
+            }
+        });
+
+        //= Prepare and check options ==================================================================================
+        if (config[OPTION_BEFORE] && !Array.isArray(config[OPTION_BEFORE])) config[OPTION_BEFORE] = [ config[OPTION_BEFORE] ];
+
+        if (typeof config[OPTION_EXECUTE] === "string") config[OPTION_EXECUTE] = { APP: { run: config[OPTION_EXECUTE] } };
+
+        const APPS_KEYS = Object.keys(config[OPTION_EXECUTE]);
+
+        APPS_KEYS.forEach(app => {
+            if (typeof config[OPTION_EXECUTE][app] === "string") {
+                config[OPTION_EXECUTE][app] = { run: config[OPTION_EXECUTE][app] };
+            } else {
+                if (typeof config[OPTION_EXECUTE][app].waitFor === "string") {
+                    config[OPTION_EXECUTE][app].waitFor = [ config[OPTION_EXECUTE][app].waitFor ];
+                }
+
+                if (config[OPTION_EXECUTE][app].when) {
+                    const WHEN_KEYS = [ "accepted", "changed", "not" ];
+                    
+                    WHEN_KEYS.forEach(key => {
+                        if (typeof config[OPTION_EXECUTE][app].when[key] === "string") {
+                            config[OPTION_EXECUTE][app].when[key] = [ config[OPTION_EXECUTE][app].when[key] ];
+                        }
+                    })
+                }
+            }
         })
-    }
+        
+        if (config[OPTION_ENV]) {
+            if (config[OPTION_ENV].PATH) {
+                if (!path.isAbsolute(config[OPTION_ENV].PATH)) config[OPTION_ENV].PATH = path.join(path.dirname(argv.config), config[OPTION_ENV].PATH);
+                config[OPTION_ENV].PATH = `${config[OPTION_ENV].PATH}:${process.env.PATH}`;
+            }
 
-    let filesHistory = [];
-    let execs = {};
-    let appColors = {};
+            process.env = Object.assign(process.env, config[OPTION_ENV]);
+        }
 
-    if (config[OPTION_COLORS]) {
-        Object.keys(config[OPTION_COLORS]).forEach(app => appColors[app] = config[OPTION_COLORS][app]);
-    }
+        if (argv.env) {
+            argv.env.forEach(env => {
+                let split = env.split("=");
+                process.env[split[0]] = split[1];
+            })
+        }
 
-    function draw() {
-        clear();
+        let filesHistory = [];
+        let execs = {};
+        let appColors = {};
 
-        console.log(`${colors.bold(colors.green("XALWatcher"))} v0.0.1 PID${process.pid}`);
-        console.log(`${colors.bold("Watching")}: ${config[OPTION_PATH]}`);
-        console.log();
-        console.log(`${colors.bold("Last changed files:")}`);
-        filesHistory.forEach(file => {
-            console.log(`  - ${file[0]} ${colors.bold(file[1])}`);
-        });
-        console.log();
-    }
+        let appsWithIgnoreChangesFlag = [];
+        //==============================================================================================================
 
-    function spawnApp(app, command) {
-        console.log(colors.green(`Launchig app ${app} - ${command}\n`));
+        function draw() {
+            // clear();
 
-        execs[app] = spawn(command, [], { 
-            env: process.env, 
-            shell: true ,
-            cwd: process.cwd(),
-            detached: true
-        });
+            console.log(`${colors.bold(colors.green("XALWatcher"))} v0.0.3 PID${process.pid}`);
+            console.log(`${colors.bold("Watching")}: ${config[OPTION_PATH]}`);
+            console.log();
+            console.log(`${colors.bold("Last changed files:")}`);
+            filesHistory.forEach(file => {
+                console.log(`  - ${file[0]} ${colors.bold(file[1])}`);
+            });
+            console.log();
+        }
 
-        execs[app].stdout.on('data', data => {
-            let l =  `[${app}][${execs[app].pid}] ${String(data)}`;
-            if (appColors[app]) l = colors[appColors[app]](l);
-            process.stdout.write(l);
-        });
+        function waitForThenSpawn(app, appConfig, waitList) {
+            let launch = true;
+            for (let i=0; i < waitList.length && launch; ++i) {
+                if (execs[waitList[i]]) launch = false;
+            }
 
-        execs[app].stderr.on('data', data => {
-            process.stdout.write(colors.bgRed(`[${app}][${execs[app].pid}] ${String(data)}`));
-        });
-    }
+            if (launch) {
+                spawnApp(app, appConfig);
+            } else {
+                setTimeout(() => waitForThenSpawn(app, appConfig, waitList), 100);
+            }
+        }
 
-    function execute() {
-        if (config[OPTION_BEFORE]) {
-            config[OPTION_BEFORE].forEach(command => {
-                try {
-                    execSync(command, { env: process.env });
-                } catch (error) {
-                    console.error(error);
-                    process.exit(1);
+        function spawnApp(app, appConfig) {
+            console.log(colors.green(`Launchig app ${app}: ${appConfig.run}`));
+
+            execs[app] = spawn(appConfig.run, [], { 
+                env: process.env, 
+                shell: true ,
+                cwd: process.cwd(),
+                detached: true
+            });
+
+            execs[app].stdout.on('data', data => {
+                let l =  `[${app}][${execs[app] && execs[app].pid}] ${String(data)}`;
+                if (appConfig.color) l = colors[appConfig.color](l);
+                process.stdout.write(l);
+            });
+
+            execs[app].stderr.on('data', data => {
+                process.stdout.write(colors.red(`[${app}][${execs[app].pid}] ${String(data)}`));
+            });
+
+            execs[app].on('close', data => {
+                console.log(colors.green(`App ${app} has done...`));
+                execs[app] = null;
+                if (appsWithIgnoreChangesFlag.includes(app)) {
+                    appsWithIgnoreChangesFlag.splice(appsWithIgnoreChangesFlag.indexOf(app), 1);
                 }
             });
         }
 
-        APPS_KEYS.forEach(app => {
-            console.log(app);
-            const command = config[OPTION_EXECUTE][app];
+        function execute(filename, root, eventType) {
+            APPS_KEYS.forEach(app => {
+                if (execs[app]) {
+                    exec(`kill -9 ${-execs[app].pid}`);
+                    console.log(colors.green(`Killing app ${app}[${execs[app].pid}]\n`));
+                    execs[app] = null;
+                }
 
-            if (execs[app]) {
-                exec(`kill -9 ${-execs[app].pid}`);
-                spawnApp(app, command);
-                console.log(colors.green(`There was a change... Killing app ${app}[${execs[app].pid}]\n`));
-            } else {
-                spawnApp(app, command);
-            }
-        })
-    }
+                console.log("execute()", app, "appsWithIgnoreChangesFlag.length", appsWithIgnoreChangesFlag.length);
+            });
 
-    let lastChangedFilenameDate = 0;
-    function onChanged(filename, root) {
-        if (Date.now() - lastChangedFilenameDate < 50) return;
-        lastChangedFilenameDate = Date.now();
-        
-        if (config[OPTION_IGNORE] && (config[OPTION_IGNORE].includes(root) || config[OPTION_IGNORE].includes(path.join(root || "", filename)))) return;
+            APPS_KEYS.forEach(app => {
+                let appConfig = config[OPTION_EXECUTE][app];
 
-        if (filesHistory.length == 3) filesHistory.pop();
-        filesHistory.splice(0, 0, [ filename, new Date() ] );
+                let commandToExecute;
 
-        execute();
-    }
+                if (typeof command === "string") {
+                    commandToExecute = appConfig;
+                } else {
+                    commandToExecute = appConfig.run;
 
-    function watchForEach(pathname, root = null) {
-        if (!fs.existsSync(pathname)) {
-            console.error(`The path "${pathname}" doesn't exists`);
-            process.exit(1);
-        }
+                    if (filename !== undefined && appConfig.when) {
+                        let shouldExecute = false;
 
-        if (!path.isAbsolute(pathname)) {
-            pathname = path.join(path.dirname(argv.config), pathname);
-        }
+                        if (appConfig.when.changed) {
+                            for (let i=0; i < appConfig.when.changed.length && !shouldExecute; ++i) {
+                                shouldExecute = root.startsWith(appConfig.when.changed[i]);
+                            }
+                        }
+                        
 
-        fs.watch(pathname, { recursive: false, persistent: true, encoding: 'utf8' }, (eventType, filename) => onChanged(filename, root));
+                        if (!shouldExecute && appConfig.when.addedOrDeleted && eventType == 'rename') {
+                            for (let i=0; i < appConfig.when.addedOrDeleted.length && !shouldExecute; ++i) {
+                                shouldExecute = root.startsWith(appConfig.when.addedOrDeleted[i]);
+                            }
+                        }
 
-        if (fs.lstatSync(pathname).isDirectory()) {
-            fs.readdirSync(pathname).forEach(subpath => {
-                const subpathname = path.join(pathname, subpath);
-                if (fs.lstatSync(subpathname).isDirectory()) watchForEach(subpathname, path.join(root || "", subpath));
+                        if (appConfig.when.not) {
+
+                        }
+
+                        if (!shouldExecute) return;
+                    }
+                }
+
+                if (config[OPTION_EXECUTE][app].ignoreChangesWhileRunning) {
+                    appsWithIgnoreChangesFlag.push(app);
+                }
+
+                if (appConfig.waitFor) {
+                    console.log(colors.yellow(`Before launching ${app} we are waiting for ${appConfig.waitFor.join(",")} to finish...`));
+                    waitForThenSpawn(app, appConfig, appConfig.waitFor);
+                } else {
+                    spawnApp(app, appConfig);
+                }
             })
         }
-    }
-    
-    watchForEach(config[OPTION_PATH]);
 
-    draw();
-    execute();
+        let lastChangedFilenameDate = 0;
+        function onChanged(filename, root, eventType) {
+            console.log("appsWithIgnoreChangesFlag.length", appsWithIgnoreChangesFlag.length);
+            if (appsWithIgnoreChangesFlag.length != 0) return;
+
+            if (Date.now() - lastChangedFilenameDate < 50) return;
+            lastChangedFilenameDate = Date.now();
+            
+            if (config[OPTION_IGNORE] && (config[OPTION_IGNORE].includes(root) || config[OPTION_IGNORE].includes(path.join(root || "", filename)))) return;
+
+            if (filesHistory.length == 3) filesHistory.pop();
+            filesHistory.splice(0, 0, [ filename, new Date() ] );
+
+            console.log("There was a change...");
+            console.log(filename, root, eventType);
+            execute(filename, root, eventType);
+        }
+
+        function watchForEach(pathname, root = null) {
+            if (!fs.existsSync(pathname)) {
+                console.error(`The path "${pathname}" doesn't exists`);
+                process.exit(1);
+            }
+
+            if (!path.isAbsolute(pathname)) {
+                pathname = path.join(path.dirname(argv.config), pathname);
+            }
+
+            fs.watch(pathname, { recursive: false, persistent: true, encoding: 'utf8' }, (eventType, filename) => { onChanged(filename, root, eventType) });
+
+            if (fs.lstatSync(pathname).isDirectory()) {
+                fs.readdirSync(pathname).forEach(subpath => {
+                    const subpathname = path.join(pathname, subpath);
+                    if (fs.lstatSync(subpathname).isDirectory()) watchForEach(subpathname, path.join(root || "", subpath));
+                })
+            }
+        }
+
+        function onExit(options) {
+            console.log("onEXIT", options);
+            if (options.cleanup) {
+                APPS_KEYS.forEach(app => {
+                    if (execs[app]) {
+                        exec(`kill -9 ${-execs[app].pid}`);
+                    }
+                })
+            }
+
+            if (options.exit) process.exit();
+        }
+
+        process.on('exit', () => onExit({ cleanup: true }));
+        process.on('SIGINT', () => onExit({ exit: true, from: "SIGINT" }));
+
+        // catches "kill pid" (for example: nodemon restart)
+        process.on('SIGUSR1', () => onExit({ exit: true, from: "SIGUSR1" }));
+        process.on('SIGUSR2', () => onExit({ exit: true, from: "SIGUSR2" }));
+
+        //catches uncaught exceptions
+        // process.on('uncaughtException', () => onExit({ exit: true, from: "uncaughtException" }));
+        
+        watchForEach(config[OPTION_PATH]);
+
+        draw();
+        execute();
+    } catch (error) {
+        console.error(error);
+    }
 })();

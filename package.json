@@ -1,8 +1,8 @@
 {
   "name": "xalwatcher",
   "preferGlobal": true,
-  "version": "0.0.1-alpha.2",
-  "description": "XALWatcher is a file watcher",
+  "version": "0.0.2",
+  "description": "XALWatcher is an app that can monitor changes in an directory and run apps by applying simple conditions",
   "main": "src/index.js",
   "scripts": {
     "build": "./build.sh",
@@ -38,13 +38,11 @@
     "xalwatcher": "./bin/xalwatcher"
   },
   "bugs": {
-    "url": "https://gitlab.com/AlexxanderX/xalwatcher/issues"
+    "url": "https://github.com/Aykelith/xalwatcher/issues"
   },
-  "repository": {
-    "type": "git",
-    "url": "git@gitlab.com:AlexxanderX/xalwatcher.git"
-  },
+  "repository": "https://github.com/Aykelith/xalwatcher",
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "keywords": ["monitor", "development", "restart", "autoload", "reload", "terminal"]
 }
