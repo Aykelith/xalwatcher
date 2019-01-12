@@ -43,4 +43,20 @@ run straight away if `GENERATE_SOME_FILES` is not run because its conditions are
 
 # Documentation
 
-TODO
+## Config
+- `path` - `String|Array` (required) the folders to watch for changes(relative path are taken from the working directory) 
+- `env` - `Object` additional entries to the enviromental variables 
+- `once` - TODO
+- `execute` - `Object` (required) the apps to execute
+
+For each object in `execute` you have the options:
+- `run` - `String` (required) the path to launch 
+- `when` - `Object` Relaunch the app only if some files/paths are modified
+  - `not` - TODO
+  - `changed` - `String|Array` The paths/files to check if changed
+  - `addedOrDeleted` - `String|Array` The paths/files to check if added or deleted
+- `color` - `String` the name of the colors. Using the package `colors`
+- `waitFor` - `String|Array` wait for some apps before executing this app
+- `ignoreChangesWhileRunning` - `Boolean` ignore the changes to the files while this app is running (useful if the app is modifying the watched files)
+
+Also the value of the object in `execute` can be the string to execute.

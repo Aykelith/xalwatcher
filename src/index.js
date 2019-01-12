@@ -13,6 +13,14 @@ const argv = require("yargs")
     .alias("h", "help")
     .argv;
 
+function replaceStringVarsWithEnv(str) {
+    Object.keys(process.env).forEach(env => {
+        str = str.replace(`$${env}`, process.env[env]);
+    });
+    
+    return str;
+}
+
 (async () => {
     try {
         if (process.env.XAL_DEBUG) {
@@ -65,9 +73,26 @@ const argv = require("yargs")
             }
         });
 
+        if (argv.env) {
+            argv.env.forEach(env => {
+                let split = env.split("=");
+                process.env[split[0]] = split[1];
+            })
+        }
+
         //= Prepare and check options ==================================================================================
+        //- OPTION_PATH ---------------------------
+        if (!Array.isArray(config[OPTION_PATH])) config[OPTION_PATH] = [ config[OPTION_PATH] ];
+
+        for (let i=0; i < config[OPTION_PATH].length; ++i) {
+            config[OPTION_PATH][i] = replaceStringVarsWithEnv(config[OPTION_PATH][i]);
+        }
+        //-----------------------------------------
+
+        // OPTION_BEFORE
         if (config[OPTION_BEFORE] && !Array.isArray(config[OPTION_BEFORE])) config[OPTION_BEFORE] = [ config[OPTION_BEFORE] ];
 
+        //- OPTION_EXECUTE ------------------------
         if (typeof config[OPTION_EXECUTE] === "string") config[OPTION_EXECUTE] = { APP: { run: config[OPTION_EXECUTE] } };
 
         const APPS_KEYS = Object.keys(config[OPTION_EXECUTE]);
@@ -91,7 +116,9 @@ const argv = require("yargs")
                 }
             }
         })
+        //-----------------------------------------
         
+        // OPTION_ENV
         if (config[OPTION_ENV]) {
             if (config[OPTION_ENV].PATH) {
                 if (!path.isAbsolute(config[OPTION_ENV].PATH)) config[OPTION_ENV].PATH = path.join(path.dirname(argv.config), config[OPTION_ENV].PATH);
@@ -101,23 +128,21 @@ const argv = require("yargs")
             process.env = Object.assign(process.env, config[OPTION_ENV]);
         }
 
-        if (argv.env) {
-            argv.env.forEach(env => {
-                let split = env.split("=");
-                process.env[split[0]] = split[1];
-            })
+        //- OPTION_ONCE ---------------------------
+        if (!Array.isArray(config[OPTION_ONCE])) config[OPTION_ONCE] = [ config[OPTION_ONCE] ];
+        
+        for (let i=0; i < config[OPTION_ONCE].length; ++i) {
+            config[OPTION_ONCE][i] = replaceStringVarsWithEnv(config[OPTION_ONCE][i]);
         }
+        //-----------------------------------------
+        //==============================================================================================================
 
         let filesHistory = [];
         let execs = {};
-        let appColors = {};
 
         let appsWithIgnoreChangesFlag = [];
-        //==============================================================================================================
 
         function draw() {
-            // clear();
-
             console.log(`${colors.bold(colors.green("XALWatcher"))} v0.0.3 PID${process.pid}`);
             console.log(`${colors.bold("Watching")}: ${config[OPTION_PATH]}`);
             console.log();
@@ -146,7 +171,7 @@ const argv = require("yargs")
 
             execs[app] = spawn(appConfig.run, [], { 
                 env: process.env, 
-                shell: true ,
+                shell: true,
                 cwd: process.cwd(),
                 detached: true
             });
@@ -158,7 +183,7 @@ const argv = require("yargs")
             });
 
             execs[app].stderr.on('data', data => {
-                process.stdout.write(colors.red(`[${app}][${execs[app].pid}] ${String(data)}`));
+                process.stdout.write(colors.red(`[${app}][${execs[app] && execs[app].pid}] ${String(data)}`));
             });
 
             execs[app].on('close', data => {
@@ -184,35 +209,27 @@ const argv = require("yargs")
             APPS_KEYS.forEach(app => {
                 let appConfig = config[OPTION_EXECUTE][app];
 
-                let commandToExecute;
+                if (filename !== undefined && appConfig.when) {
+                    let shouldExecute = false;
 
-                if (typeof command === "string") {
-                    commandToExecute = appConfig;
-                } else {
-                    commandToExecute = appConfig.run;
-
-                    if (filename !== undefined && appConfig.when) {
-                        let shouldExecute = false;
-
-                        if (appConfig.when.changed) {
-                            for (let i=0; i < appConfig.when.changed.length && !shouldExecute; ++i) {
-                                shouldExecute = root.startsWith(appConfig.when.changed[i]);
-                            }
+                    if (appConfig.when.changed) {
+                        for (let i=0; i < appConfig.when.changed.length && !shouldExecute; ++i) {
+                            shouldExecute = root.startsWith(appConfig.when.changed[i]);
                         }
-                        
-
-                        if (!shouldExecute && appConfig.when.addedOrDeleted && eventType == 'rename') {
-                            for (let i=0; i < appConfig.when.addedOrDeleted.length && !shouldExecute; ++i) {
-                                shouldExecute = root.startsWith(appConfig.when.addedOrDeleted[i]);
-                            }
-                        }
-
-                        if (appConfig.when.not) {
-
-                        }
-
-                        if (!shouldExecute) return;
                     }
+                    
+
+                    if (!shouldExecute && appConfig.when.addedOrDeleted && eventType == 'rename') {
+                        for (let i=0; i < appConfig.when.addedOrDeleted.length && !shouldExecute; ++i) {
+                            shouldExecute = root.startsWith(appConfig.when.addedOrDeleted[i]);
+                        }
+                    }
+
+                    if (appConfig.when.not) {
+                        
+                    }
+
+                    if (!shouldExecute) return;
                 }
 
                 if (config[OPTION_EXECUTE][app].ignoreChangesWhileRunning) {
@@ -289,7 +306,7 @@ const argv = require("yargs")
         //catches uncaught exceptions
         // process.on('uncaughtException', () => onExit({ exit: true, from: "uncaughtException" }));
         
-        watchForEach(config[OPTION_PATH]);
+        config[OPTION_PATH].forEach(path => watchForEach(path, path));
 
         draw();
         execute();

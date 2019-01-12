@@ -11,15 +11,19 @@ require("core-js/modules/es6.array.index-of");
 
 require("core-js/modules/es6.string.bold");
 
-require("core-js/modules/es6.regexp.split");
-
 require("core-js/modules/es6.object.assign");
 
 require("core-js/modules/es6.array.is-array");
 
+require("core-js/modules/es6.regexp.split");
+
 require("core-js/modules/es7.array.includes");
 
 require("core-js/modules/es6.string.includes");
+
+require("regenerator-runtime/runtime");
+
+require("core-js/modules/es6.regexp.replace");
 
 require("core-js/modules/es6.array.iterator");
 
@@ -28,8 +32,6 @@ require("core-js/modules/es6.object.keys");
 require("core-js/modules/web.dom.iterable");
 
 require("core-js/modules/es6.array.for-each");
-
-require("regenerator-runtime/runtime");
 
 var _fs = _interopRequireDefault(require("fs"));
 
@@ -58,18 +60,24 @@ var argv = require("yargs").option("config", {
   array: true
 }).help("h").alias("h", "help").argv;
 
+function replaceStringVarsWithEnv(str) {
+  Object.keys(process.env).forEach(function (env) {
+    str = str.replace("$".concat(env), process.env[env]);
+  });
+  return str;
+}
+
 _asyncToGenerator(
 /*#__PURE__*/
 regeneratorRuntime.mark(function _callee() {
-  var draw, waitForThenSpawn, spawnApp, execute, onChanged, watchForEach, onExit, config, OPTION_PATH, OPTION_IGNORE, OPTION_BEFORE, OPTION_EXECUTE, OPTION_ENV, OPTION_ONCE, requiredOptions, allOptions, APPS_KEYS, filesHistory, execs, appColors, appsWithIgnoreChangesFlag, lastChangedFilenameDate;
+  var draw, waitForThenSpawn, spawnApp, execute, onChanged, watchForEach, onExit, config, OPTION_PATH, OPTION_IGNORE, OPTION_BEFORE, OPTION_EXECUTE, OPTION_ENV, OPTION_ONCE, requiredOptions, allOptions, i, APPS_KEYS, _i, filesHistory, execs, appsWithIgnoreChangesFlag, lastChangedFilenameDate;
+
   return regeneratorRuntime.wrap(function _callee$(_context) {
     while (1) {
       switch (_context.prev = _context.next) {
         case 0:
           try {
-            //==============================================================================================================
             draw = function draw() {
-              // clear();
               console.log("".concat(_colors.default.bold(_colors.default.green("XALWatcher")), " v0.0.3 PID").concat(process.pid));
               console.log("".concat(_colors.default.bold("Watching"), ": ").concat(config[OPTION_PATH]));
               console.log();
@@ -83,8 +91,8 @@ regeneratorRuntime.mark(function _callee() {
             waitForThenSpawn = function waitForThenSpawn(app, appConfig, waitList) {
               var launch = true;
 
-              for (var i = 0; i < waitList.length && launch; ++i) {
-                if (execs[waitList[i]]) launch = false;
+              for (var _i2 = 0; _i2 < waitList.length && launch; ++_i2) {
+                if (execs[waitList[_i2]]) launch = false;
               }
 
               if (launch) {
@@ -110,7 +118,7 @@ regeneratorRuntime.mark(function _callee() {
                 process.stdout.write(l);
               });
               execs[app].stderr.on('data', function (data) {
-                process.stdout.write(_colors.default.red("[".concat(app, "][").concat(execs[app].pid, "] ").concat(String(data))));
+                process.stdout.write(_colors.default.red("[".concat(app, "][").concat(execs[app] && execs[app].pid, "] ").concat(String(data))));
               });
               execs[app].on('close', function (data) {
                 console.log(_colors.default.green("App ".concat(app, " has done...")));
@@ -134,32 +142,25 @@ regeneratorRuntime.mark(function _callee() {
               });
               APPS_KEYS.forEach(function (app) {
                 var appConfig = config[OPTION_EXECUTE][app];
-                var commandToExecute;
 
-                if (typeof command === "string") {
-                  commandToExecute = appConfig;
-                } else {
-                  commandToExecute = appConfig.run;
+                if (filename !== undefined && appConfig.when) {
+                  var shouldExecute = false;
 
-                  if (filename !== undefined && appConfig.when) {
-                    var shouldExecute = false;
-
-                    if (appConfig.when.changed) {
-                      for (var i = 0; i < appConfig.when.changed.length && !shouldExecute; ++i) {
-                        shouldExecute = root.startsWith(appConfig.when.changed[i]);
-                      }
+                  if (appConfig.when.changed) {
+                    for (var _i3 = 0; _i3 < appConfig.when.changed.length && !shouldExecute; ++_i3) {
+                      shouldExecute = root.startsWith(appConfig.when.changed[_i3]);
                     }
-
-                    if (!shouldExecute && appConfig.when.addedOrDeleted && eventType == 'rename') {
-                      for (var _i = 0; _i < appConfig.when.addedOrDeleted.length && !shouldExecute; ++_i) {
-                        shouldExecute = root.startsWith(appConfig.when.addedOrDeleted[_i]);
-                      }
-                    }
-
-                    if (appConfig.when.not) {}
-
-                    if (!shouldExecute) return;
                   }
+
+                  if (!shouldExecute && appConfig.when.addedOrDeleted && eventType == 'rename') {
+                    for (var _i4 = 0; _i4 < appConfig.when.addedOrDeleted.length && !shouldExecute; ++_i4) {
+                      shouldExecute = root.startsWith(appConfig.when.addedOrDeleted[_i4]);
+                    }
+                  }
+
+                  if (appConfig.when.not) {}
+
+                  if (!shouldExecute) return;
                 }
 
                 if (config[OPTION_EXECUTE][app].ignoreChangesWhileRunning) {
@@ -276,9 +277,27 @@ regeneratorRuntime.mark(function _callee() {
                 console.error("The option \"".concat(option, "\" from config is unknown"));
                 process.exit(1);
               }
-            }); //= Prepare and check options ==================================================================================
+            });
 
-            if (config[OPTION_BEFORE] && !Array.isArray(config[OPTION_BEFORE])) config[OPTION_BEFORE] = [config[OPTION_BEFORE]];
+            if (argv.env) {
+              argv.env.forEach(function (env) {
+                var split = env.split("=");
+                process.env[split[0]] = split[1];
+              });
+            } //= Prepare and check options ==================================================================================
+            //- OPTION_PATH ---------------------------
+
+
+            if (!Array.isArray(config[OPTION_PATH])) config[OPTION_PATH] = [config[OPTION_PATH]];
+
+            for (i = 0; i < config[OPTION_PATH].length; ++i) {
+              config[OPTION_PATH][i] = replaceStringVarsWithEnv(config[OPTION_PATH][i]);
+            } //-----------------------------------------
+            // OPTION_BEFORE
+
+
+            if (config[OPTION_BEFORE] && !Array.isArray(config[OPTION_BEFORE])) config[OPTION_BEFORE] = [config[OPTION_BEFORE]]; //- OPTION_EXECUTE ------------------------
+
             if (typeof config[OPTION_EXECUTE] === "string") config[OPTION_EXECUTE] = {
               APP: {
                 run: config[OPTION_EXECUTE]
@@ -304,7 +323,8 @@ regeneratorRuntime.mark(function _callee() {
                   });
                 }
               }
-            });
+            }); //-----------------------------------------
+            // OPTION_ENV
 
             if (config[OPTION_ENV]) {
               if (config[OPTION_ENV].PATH) {
@@ -313,18 +333,19 @@ regeneratorRuntime.mark(function _callee() {
               }
 
               process.env = Object.assign(process.env, config[OPTION_ENV]);
-            }
+            } //- OPTION_ONCE ---------------------------
 
-            if (argv.env) {
-              argv.env.forEach(function (env) {
-                var split = env.split("=");
-                process.env[split[0]] = split[1];
-              });
-            }
+
+            if (!Array.isArray(config[OPTION_ONCE])) config[OPTION_ONCE] = [config[OPTION_ONCE]];
+
+            for (_i = 0; _i < config[OPTION_ONCE].length; ++_i) {
+              config[OPTION_ONCE][_i] = replaceStringVarsWithEnv(config[OPTION_ONCE][_i]);
+            } //-----------------------------------------
+            //==============================================================================================================
+
 
             filesHistory = [];
             execs = {};
-            appColors = {};
             appsWithIgnoreChangesFlag = [];
             lastChangedFilenameDate = 0;
             process.on('exit', function () {
@@ -353,7 +374,9 @@ regeneratorRuntime.mark(function _callee() {
             }); //catches uncaught exceptions
             // process.on('uncaughtException', () => onExit({ exit: true, from: "uncaughtException" }));
 
-            watchForEach(config[OPTION_PATH]);
+            config[OPTION_PATH].forEach(function (path) {
+              return watchForEach(path, path);
+            });
             draw();
             execute();
           } catch (error) {
