@@ -133,7 +133,7 @@ regeneratorRuntime.mark(function _callee() {
             execute = function execute(filename, root, eventType) {
               APPS_KEYS.forEach(function (app) {
                 if (execs[app]) {
-                  (0, _child_process.exec)("kill -9 ".concat(-execs[app].pid));
+                  (0, _child_process.execSync)("kill -9 ".concat(-execs[app].pid));
                   console.log(_colors.default.green("Killing app ".concat(app, "[").concat(execs[app].pid, "]\n")));
                   execs[app] = null;
                 }
@@ -224,7 +224,11 @@ regeneratorRuntime.mark(function _callee() {
               if (options.cleanup) {
                 APPS_KEYS.forEach(function (app) {
                   if (execs[app]) {
-                    (0, _child_process.exec)("kill -9 ".concat(-execs[app].pid));
+                    try {
+                      console.log("KILLING", execs[app].pid, (0, _child_process.execSync)("kill -9 ".concat(-execs[app].pid)));
+                    } catch (error) {
+                      console.error(_colors.default.red("Error while killing PID".concat(execs[app].pid)));
+                    }
                   }
                 });
               }

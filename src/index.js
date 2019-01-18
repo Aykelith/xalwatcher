@@ -4,7 +4,7 @@ import yaml from "js-yaml";
 import path from "path";
 import colors from "colors";
 import clear from "console-clear";
-import { spawn, exec } from "child_process"; 
+import { spawn, execSync } from "child_process"; 
 
 const argv = require("yargs")
     .option("config", { alias: "c", demandOption: true, type: "string" })
@@ -198,7 +198,7 @@ function replaceStringVarsWithEnv(str) {
         function execute(filename, root, eventType) {
             APPS_KEYS.forEach(app => {
                 if (execs[app]) {
-                    exec(`kill -9 ${-execs[app].pid}`);
+                    execSync(`kill -9 ${-execs[app].pid}`);
                     console.log(colors.green(`Killing app ${app}[${execs[app].pid}]\n`));
                     execs[app] = null;
                 }
@@ -288,7 +288,11 @@ function replaceStringVarsWithEnv(str) {
             if (options.cleanup) {
                 APPS_KEYS.forEach(app => {
                     if (execs[app]) {
-                        exec(`kill -9 ${-execs[app].pid}`);
+                        try {
+                            console.log("KILLING", execs[app].pid, execSync(`kill -9 ${-execs[app].pid}`));
+                        } catch (error) {
+                            console.error(colors.red(`Error while killing PID${execs[app].pid}`));
+                        }
                     }
                 })
             }
