@@ -1,7 +1,7 @@
 {
   "name": "xalwatcher",
   "preferGlobal": true,
-  "version": "0.0.4",
+  "version": "0.0.6",
   "description": "XALWatcher is an app that can monitor changes in an directory and run apps by applying simple conditions",
   "main": "src/index.js",
   "scripts": {

@@ -143,7 +143,7 @@ function replaceStringVarsWithEnv(str) {
         let appsWithIgnoreChangesFlag = [];
 
         function draw() {
-            console.log(`${colors.bold(colors.green("XALWatcher"))} v0.0.3 PID${process.pid}`);
+            console.log(`${colors.bold(colors.green("XALWatcher"))} v0.0.6 PID${process.pid}`);
             console.log(`${colors.bold("Watching")}: ${config[OPTION_PATH]}`);
             console.log();
             console.log(`${colors.bold("Last changed files:")}`);
@@ -177,7 +177,7 @@ function replaceStringVarsWithEnv(str) {
             });
 
             execs[app].stdout.on('data', data => {
-                let l =  `[${app}][${execs[app] && execs[app].pid}] ${String(data)}`;
+                let l = `[${app}][${execs[app] && execs[app].pid}] ${String(data)}`;
                 if (appConfig.color) l = colors[appConfig.color](l);
                 process.stdout.write(l);
             });
@@ -198,8 +198,8 @@ function replaceStringVarsWithEnv(str) {
         function execute(filename, root, eventType) {
             APPS_KEYS.forEach(app => {
                 if (execs[app]) {
-                    execSync(`kill -9 ${-execs[app].pid}`);
-                    console.log(colors.green(`Killing app ${app}[${execs[app].pid}]\n`));
+                    let result = execSync(`kill -9 ${-execs[app].pid}`);
+                    console.log(colors.green(`Killing app ${app}[${execs[app].pid}] | ${String(result)}\n`));
                     execs[app] = null;
                 }
 
@@ -289,7 +289,8 @@ function replaceStringVarsWithEnv(str) {
                 APPS_KEYS.forEach(app => {
                     if (execs[app]) {
                         try {
-                            console.log("KILLING", execs[app].pid, execSync(`kill -9 ${-execs[app].pid}`));
+                            let result = execSync(`kill -9 ${-execs[app].pid}`);
+                            console.log("KILLING", execs[app].pid, String(result));
                         } catch (error) {
                             console.error(colors.red(`Error while killing PID${execs[app].pid}`));
                         }
