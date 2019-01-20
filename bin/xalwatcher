@@ -58,7 +58,7 @@ var argv = require("yargs").option("config", {
 }).option("env", {
   type: "string",
   array: true
-}).help("h").alias("h", "help").argv;
+}).help("h").alias("h", "help").alias('v', 'version').describe('v', 'show version information').argv;
 
 function replaceStringVarsWithEnv(str) {
   Object.keys(process.env).forEach(function (env) {
@@ -70,7 +70,7 @@ function replaceStringVarsWithEnv(str) {
 _asyncToGenerator(
 /*#__PURE__*/
 regeneratorRuntime.mark(function _callee() {
-  var draw, waitForThenSpawn, spawnApp, execute, onChanged, watchForEach, onExit, config, OPTION_PATH, OPTION_IGNORE, OPTION_BEFORE, OPTION_EXECUTE, OPTION_ENV, OPTION_ONCE, requiredOptions, allOptions, i, APPS_KEYS, _i, filesHistory, execs, appsWithIgnoreChangesFlag, lastChangedFilenameDate;
+  var draw, waitForThenSpawn, spawnApp, execute, onChanged, watchForEach, onExit, config, OPTION_PATH, OPTION_IGNORE, OPTION_BEFORE, OPTION_EXECUTE, OPTION_ENV, OPTION_ONCE, requiredOptions, allOptions, i, APPS_KEYS, _i, key, filesHistory, execs, appsWithIgnoreChangesFlag, lastChangedFilenameDate, _i5, length, _key;
 
   return regeneratorRuntime.wrap(function _callee$(_context) {
     while (1) {
@@ -78,7 +78,7 @@ regeneratorRuntime.mark(function _callee() {
         case 0:
           try {
             draw = function draw() {
-              console.log("".concat(_colors.default.bold(_colors.default.green("XALWatcher")), " v0.0.3 PID").concat(process.pid));
+              console.log("".concat(_colors.default.bold(_colors.default.green("XALWatcher")), " v0.0.6 PID").concat(process.pid));
               console.log("".concat(_colors.default.bold("Watching"), ": ").concat(config[OPTION_PATH]));
               console.log();
               console.log("".concat(_colors.default.bold("Last changed files:")));
@@ -133,8 +133,8 @@ regeneratorRuntime.mark(function _callee() {
             execute = function execute(filename, root, eventType) {
               APPS_KEYS.forEach(function (app) {
                 if (execs[app]) {
-                  (0, _child_process.execSync)("kill -9 ".concat(-execs[app].pid));
-                  console.log(_colors.default.green("Killing app ".concat(app, "[").concat(execs[app].pid, "]\n")));
+                  var result = (0, _child_process.execSync)("kill -9 ".concat(-execs[app].pid));
+                  console.log(_colors.default.green("Killing app ".concat(app, "[").concat(execs[app].pid, "] | ").concat(String(result), "\n")));
                   execs[app] = null;
                 }
 
@@ -225,7 +225,8 @@ regeneratorRuntime.mark(function _callee() {
                 APPS_KEYS.forEach(function (app) {
                   if (execs[app]) {
                     try {
-                      console.log("KILLING", execs[app].pid, (0, _child_process.execSync)("kill -9 ".concat(-execs[app].pid)));
+                      var result = (0, _child_process.execSync)("kill -9 ".concat(-execs[app].pid));
+                      console.log("KILLING", execs[app].pid, String(result));
                     } catch (error) {
                       console.error(_colors.default.red("Error while killing PID".concat(execs[app].pid)));
                     }
@@ -340,10 +341,16 @@ regeneratorRuntime.mark(function _callee() {
             } //- OPTION_ONCE ---------------------------
 
 
-            if (!Array.isArray(config[OPTION_ONCE])) config[OPTION_ONCE] = [config[OPTION_ONCE]];
+            if (config[OPTION_ONCE]) {
+              if (!Array.isArray(config[OPTION_ONCE])) config[OPTION_ONCE] = [config[OPTION_ONCE]];
 
-            for (_i = 0; _i < config[OPTION_ONCE].length; ++_i) {
-              config[OPTION_ONCE][_i] = replaceStringVarsWithEnv(config[OPTION_ONCE][_i]);
+              for (_i = 0; _i < config[OPTION_ONCE].length; ++_i) {
+                key = Object.keys(config[OPTION_ONCE][_i]);
+                console.log("ONCE", _i, key, config[OPTION_ONCE][_i]);
+                config[OPTION_ONCE][_i][key] = {
+                  run: replaceStringVarsWithEnv(config[OPTION_ONCE][_i][key])
+                };
+              }
             } //-----------------------------------------
             //==============================================================================================================
 
@@ -382,6 +389,14 @@ regeneratorRuntime.mark(function _callee() {
               return watchForEach(path, path);
             });
             draw();
+
+            if (config[OPTION_ONCE]) {
+              for (_i5 = 0, length = config[OPTION_ONCE].length; _i5 < length; ++_i5) {
+                _key = Object.keys(config[OPTION_ONCE][_i5]);
+                spawnApp(_key, config[OPTION_ONCE][_i5][_key]);
+              }
+            }
+
             execute();
           } catch (error) {
             console.error(error);

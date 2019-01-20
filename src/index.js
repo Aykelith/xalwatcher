@@ -11,6 +11,8 @@ const argv = require("yargs")
     .option("env", { type: "string", array: true })
     .help("h")
     .alias("h", "help")
+    .alias('v', 'version')
+    .describe('v', 'show version information')
     .argv;
 
 function replaceStringVarsWithEnv(str) {
@@ -129,10 +131,14 @@ function replaceStringVarsWithEnv(str) {
         }
 
         //- OPTION_ONCE ---------------------------
-        if (!Array.isArray(config[OPTION_ONCE])) config[OPTION_ONCE] = [ config[OPTION_ONCE] ];
+        if (config[OPTION_ONCE]) {
+            if (!Array.isArray(config[OPTION_ONCE])) config[OPTION_ONCE] = [ config[OPTION_ONCE] ];
         
-        for (let i=0; i < config[OPTION_ONCE].length; ++i) {
-            config[OPTION_ONCE][i] = replaceStringVarsWithEnv(config[OPTION_ONCE][i]);
+            for (let i=0; i < config[OPTION_ONCE].length; ++i) {
+                const key = Object.keys(config[OPTION_ONCE][i]);
+                console.log("ONCE",i,key,config[OPTION_ONCE][i]);
+                config[OPTION_ONCE][i][key] = { run: replaceStringVarsWithEnv(config[OPTION_ONCE][i][key]) };
+            }
         }
         //-----------------------------------------
         //==============================================================================================================
@@ -314,6 +320,14 @@ function replaceStringVarsWithEnv(str) {
         config[OPTION_PATH].forEach(path => watchForEach(path, path));
 
         draw();
+
+        if (config[OPTION_ONCE]) {
+            for (let i=0, length=config[OPTION_ONCE].length; i < length; ++i) {
+                const key = Object.keys(config[OPTION_ONCE][i]);
+                spawnApp(key, config[OPTION_ONCE][i][key]);
+            }
+        }
+
         execute();
     } catch (error) {
         console.error(error);
