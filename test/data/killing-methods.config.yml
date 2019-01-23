@@ -1,0 +1,8 @@
+path: data
+execute:
+  WEBPACK: 
+    run: webpack --config webpack.config.js --display-error-details
+    waitFor: GENERATE_WEBSITE
+    color: magenta
+    when:
+      not: server.js
