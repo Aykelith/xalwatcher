@@ -78,7 +78,7 @@ regeneratorRuntime.mark(function _callee() {
         case 0:
           try {
             draw = function draw() {
-              console.log("".concat(_colors.default.bold(_colors.default.green("XALWatcher")), " v0.0.9 PID").concat(process.pid));
+              console.log("".concat(_colors.default.bold(_colors.default.green("XALWatcher")), " v0.1.0 PID").concat(process.pid));
               console.log("".concat(_colors.default.bold("Watching"), ": ").concat(config[OPTION_PATH]));
               console.log();
               console.log("".concat(_colors.default.bold("Last changed files:")));
@@ -105,13 +105,13 @@ regeneratorRuntime.mark(function _callee() {
             };
 
             spawnApp = function spawnApp(app, appConfig) {
-              console.log(_colors.default.green("Launchig app ".concat(app, ": ").concat(appConfig.run)));
               execs[app] = (0, _child_process.spawn)(appConfig.run, [], {
                 env: process.env,
                 shell: true,
                 cwd: process.cwd(),
                 detached: true
               });
+              console.log(_colors.default.green("Launched app ".concat(app, "[").concat(execs[app].pid, "]: ").concat(appConfig.run)));
               execs[app].stdout.on('data', function (data) {
                 var l = "[".concat(app, "][").concat(execs[app] && execs[app].pid, "] ").concat(String(data));
                 if (appConfig.color) l = _colors.default[appConfig.color](l);
@@ -139,6 +139,7 @@ regeneratorRuntime.mark(function _callee() {
                     execs[app] = null;
                   } catch (error) {
                     console.error(_colors.default.red("Error while killing PID".concat(execs[app].pid)));
+                    console.log(error);
                   }
                 }
 
@@ -234,6 +235,7 @@ regeneratorRuntime.mark(function _callee() {
                       console.log("KILLING", execs[app].pid, String(_result));
                     } catch (error) {
                       console.error(_colors.default.red("Error while killing PID".concat(execs[app].pid)));
+                      console.log(error);
                     }
                   }
                 });
