@@ -84,7 +84,7 @@ regeneratorRuntime.mark(function _callee2() {
 
           try {
             draw = function draw() {
-              console.log("".concat(_colors.default.bold(_colors.default.green("XALWatcher")), " v0.1.2 PID").concat(process.pid));
+              console.log("".concat(_colors.default.bold(_colors.default.green("XALWatcher")), " v0.1.3 PID").concat(process.pid));
               console.log("".concat(_colors.default.bold("Watching"), ": ").concat(config[OPTION_PATH]));
               console.log();
               console.log("".concat(_colors.default.bold("Last changed files:")));
@@ -145,13 +145,12 @@ regeneratorRuntime.mark(function _callee2() {
                     console.log(_colors.default.green("Killing app ".concat(app, "[").concat(execs[app].pid, "]\n")));
                     process.kill(-execs[app].pid);
                   } catch (error) {
-                    console.error(_colors.default.red("Error while killing PID".concat(execs[app].pid)));
-                    console.log(error);
-
                     try {
                       process.kill(execs[app].pid);
-                    } catch (error) {
-                      console.error(_colors.default.red("Strange internal error"), error);
+                    } catch (error2) {
+                      console.error(_colors.default.red("Error while killing ".concat(app, "[").concat(execs[app].pid, "]")));
+                      console.log(error);
+                      console.log(error2);
                     }
                   }
                 }
@@ -251,7 +250,6 @@ regeneratorRuntime.mark(function _callee2() {
             };
 
             onChanged = function onChanged(filename, root, eventType) {
-              console.log("appsWithIgnoreChangesFlag.length", appsWithIgnoreChangesFlag.length);
               if (appsWithIgnoreChangesFlag.length != 0) return;
               if (Date.now() - lastChangedFilenameDate < 50) return;
               lastChangedFilenameDate = Date.now();
@@ -293,17 +291,19 @@ regeneratorRuntime.mark(function _callee2() {
             };
 
             onExit = function onExit(options) {
-              console.log("onEXIT", options);
-
               if (options.cleanup) {
                 APPS_KEYS.forEach(function (app) {
                   if (execs[app]) {
                     try {
-                      var result = process.kill(-execs[app].pid);
-                      console.log("KILLING", execs[app].pid, String(result));
+                      process.kill(-execs[app].pid);
                     } catch (error) {
-                      console.error(_colors.default.red("Error while killing PID".concat(execs[app].pid)));
-                      console.log(error);
+                      try {
+                        process.kill(execs[app].pid);
+                      } catch (error2) {
+                        console.error(_colors.default.red("Error while killing ".concat(app, "[").concat(execs[app].pid, "]")));
+                        console.log(error);
+                        console.log(error2);
+                      }
                     }
                   }
                 });

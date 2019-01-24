@@ -155,7 +155,7 @@ function replaceStringVarsWithEnv(str) {
         let appsWithIgnoreChangesFlag = [];
 
         function draw() {
-            console.log(`${colors.bold(colors.green("XALWatcher"))} v0.1.2 PID${process.pid}`);
+            console.log(`${colors.bold(colors.green("XALWatcher"))} v0.1.3 PID${process.pid}`);
             console.log(`${colors.bold("Watching")}: ${config[OPTION_PATH]}`);
             console.log();
             console.log(`${colors.bold("Last changed files:")}`);
@@ -218,13 +218,12 @@ function replaceStringVarsWithEnv(str) {
                         console.log(colors.green(`Killing app ${app}[${execs[app].pid}]\n`));
                         process.kill(-execs[app].pid);
                     } catch (error) {
-                        console.error(colors.red(`Error while killing PID${execs[app].pid}`));
-                        console.log(error);
-
                         try {
                             process.kill(execs[app].pid);
-                        } catch (error) {
-                            console.error(colors.red(`Strange internal error`), error);
+                        } catch (error2) {
+                            console.error(colors.red(`Error while killing ${app}[${execs[app].pid}]`));
+                            console.log(error);
+                            console.log(error2);
                         }
                     }
                 }
@@ -281,7 +280,6 @@ function replaceStringVarsWithEnv(str) {
 
         let lastChangedFilenameDate = 0;
         function onChanged(filename, root, eventType) {
-            console.log("appsWithIgnoreChangesFlag.length", appsWithIgnoreChangesFlag.length);
             if (appsWithIgnoreChangesFlag.length != 0) return;
 
             if (Date.now() - lastChangedFilenameDate < 50) return;
@@ -318,16 +316,19 @@ function replaceStringVarsWithEnv(str) {
         }
 
         function onExit(options) {
-            console.log("onEXIT", options);
             if (options.cleanup) {
                 APPS_KEYS.forEach(app => {
                     if (execs[app]) {
                         try {
-                            let result = process.kill(-execs[app].pid);
-                            console.log("KILLING", execs[app].pid, String(result));
+                            process.kill(-execs[app].pid);
                         } catch (error) {
-                            console.error(colors.red(`Error while killing PID${execs[app].pid}`));
-                            console.log(error);
+                            try {
+                                process.kill(execs[app].pid);
+                            } catch (error2) {
+                                console.error(colors.red(`Error while killing ${app}[${execs[app].pid}]`));
+                                console.log(error);
+                                console.log(error2);
+                            }
                         }
                     }
                 })
