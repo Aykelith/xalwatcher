@@ -149,7 +149,7 @@ function replaceStringVarsWithEnv(str) {
         let appsWithIgnoreChangesFlag = [];
 
         function draw() {
-            console.log(`${colors.bold(colors.green("XALWatcher"))} v0.1.0 PID${process.pid}`);
+            console.log(`${colors.bold(colors.green("XALWatcher"))} v0.1.1 PID${process.pid}`);
             console.log(`${colors.bold("Watching")}: ${config[OPTION_PATH]}`);
             console.log();
             console.log(`${colors.bold("Last changed files:")}`);
@@ -205,12 +205,18 @@ function replaceStringVarsWithEnv(str) {
             APPS_KEYS.forEach(app => {
                 if (execs[app]) {
                     try {
-                        console.log(colors.green(`Killing app ${app}[${execs[app].pid}] | ${String(result)}\n`));
+                        console.log(colors.green(`Killing app ${app}[${execs[app].pid}]\n`));
                         process.kill(-execs[app].pid);
                         execs[app] = null;
                     } catch (error) {
                         console.error(colors.red(`Error while killing PID${execs[app].pid}`));
                         console.log(error);
+
+                        try {
+                            process.kill(execs[app].pid);
+                        } catch (error) {
+                            console.error(colors.red(`Strange internal error`), error);
+                        }
                     }
                 }
 
