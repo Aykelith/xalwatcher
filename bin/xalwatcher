@@ -78,7 +78,7 @@ regeneratorRuntime.mark(function _callee() {
         case 0:
           try {
             draw = function draw() {
-              console.log("".concat(_colors.default.bold(_colors.default.green("XALWatcher")), " v0.1.0 PID").concat(process.pid));
+              console.log("".concat(_colors.default.bold(_colors.default.green("XALWatcher")), " v0.1.1 PID").concat(process.pid));
               console.log("".concat(_colors.default.bold("Watching"), ": ").concat(config[OPTION_PATH]));
               console.log();
               console.log("".concat(_colors.default.bold("Last changed files:")));
@@ -134,12 +134,18 @@ regeneratorRuntime.mark(function _callee() {
               APPS_KEYS.forEach(function (app) {
                 if (execs[app]) {
                   try {
-                    console.log(_colors.default.green("Killing app ".concat(app, "[").concat(execs[app].pid, "] | ").concat(String(result), "\n")));
+                    console.log(_colors.default.green("Killing app ".concat(app, "[").concat(execs[app].pid, "]\n")));
                     process.kill(-execs[app].pid);
                     execs[app] = null;
                   } catch (error) {
                     console.error(_colors.default.red("Error while killing PID".concat(execs[app].pid)));
                     console.log(error);
+
+                    try {
+                      process.kill(execs[app].pid);
+                    } catch (error) {
+                      console.error(_colors.default.red("Strange internal error"), error);
+                    }
                   }
                 }
 
@@ -230,9 +236,8 @@ regeneratorRuntime.mark(function _callee() {
                 APPS_KEYS.forEach(function (app) {
                   if (execs[app]) {
                     try {
-                      var _result = process.kill(-execs[app].pid);
-
-                      console.log("KILLING", execs[app].pid, String(_result));
+                      var result = process.kill(-execs[app].pid);
+                      console.log("KILLING", execs[app].pid, String(result));
                     } catch (error) {
                       console.error(_colors.default.red("Error while killing PID".concat(execs[app].pid)));
                       console.log(error);
