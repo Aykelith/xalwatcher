@@ -24,6 +24,12 @@ function replaceStringVarsWithEnv(str) {
 }
 
 (async () => {
+    function sleep(ms){
+        return new Promise(resolve=>{
+            setTimeout(resolve,ms)
+        })
+    }
+
     try {
         if (process.env.XAL_DEBUG) {
             console.debug = console.log;
@@ -149,7 +155,7 @@ function replaceStringVarsWithEnv(str) {
         let appsWithIgnoreChangesFlag = [];
 
         function draw() {
-            console.log(`${colors.bold(colors.green("XALWatcher"))} v0.1.1 PID${process.pid}`);
+            console.log(`${colors.bold(colors.green("XALWatcher"))} v0.1.2 PID${process.pid}`);
             console.log(`${colors.bold("Watching")}: ${config[OPTION_PATH]}`);
             console.log();
             console.log(`${colors.bold("Last changed files:")}`);
@@ -193,6 +199,8 @@ function replaceStringVarsWithEnv(str) {
             });
 
             execs[app].on('close', data => {
+                if (execs[app].isClosing) return;
+
                 console.log(colors.green(`App ${app} has done...`));
                 execs[app] = null;
                 if (appsWithIgnoreChangesFlag.includes(app)) {
@@ -205,9 +213,10 @@ function replaceStringVarsWithEnv(str) {
             APPS_KEYS.forEach(app => {
                 if (execs[app]) {
                     try {
+                        execs[app].isClosing = true;
+
                         console.log(colors.green(`Killing app ${app}[${execs[app].pid}]\n`));
                         process.kill(-execs[app].pid);
-                        execs[app] = null;
                     } catch (error) {
                         console.error(colors.red(`Error while killing PID${execs[app].pid}`));
                         console.log(error);
@@ -219,11 +228,9 @@ function replaceStringVarsWithEnv(str) {
                         }
                     }
                 }
-
-                console.log("execute()", app, "appsWithIgnoreChangesFlag.length", appsWithIgnoreChangesFlag.length);
             });
 
-            APPS_KEYS.forEach(app => {
+            APPS_KEYS.forEach(async app => {
                 let appConfig = config[OPTION_EXECUTE][app];
 
                 if (filename !== undefined && appConfig.when) {
@@ -251,6 +258,16 @@ function replaceStringVarsWithEnv(str) {
 
                 if (config[OPTION_EXECUTE][app].ignoreChangesWhileRunning) {
                     appsWithIgnoreChangesFlag.push(app);
+                }
+
+                while (true) {
+                    try {
+                        process.kill(execs[app].pid, 0);
+                        await sleep(250);
+                    } catch (error) {
+                        execs[app] = null;
+                        break;
+                    }
                 }
 
                 if (appConfig.waitFor) {
