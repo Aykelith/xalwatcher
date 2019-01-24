@@ -149,7 +149,7 @@ function replaceStringVarsWithEnv(str) {
         let appsWithIgnoreChangesFlag = [];
 
         function draw() {
-            console.log(`${colors.bold(colors.green("XALWatcher"))} v0.0.9 PID${process.pid}`);
+            console.log(`${colors.bold(colors.green("XALWatcher"))} v0.1.0 PID${process.pid}`);
             console.log(`${colors.bold("Watching")}: ${config[OPTION_PATH]}`);
             console.log();
             console.log(`${colors.bold("Last changed files:")}`);
@@ -173,14 +173,14 @@ function replaceStringVarsWithEnv(str) {
         }
 
         function spawnApp(app, appConfig) {
-            console.log(colors.green(`Launchig app ${app}: ${appConfig.run}`));
-
             execs[app] = spawn(appConfig.run, [], { 
                 env: process.env, 
                 shell: true,
                 cwd: process.cwd(),
                 detached: true
             });
+
+            console.log(colors.green(`Launched app ${app}[${execs[app].pid}]: ${appConfig.run}`));
 
             execs[app].stdout.on('data', data => {
                 let l = `[${app}][${execs[app] && execs[app].pid}] ${String(data)}`;
@@ -210,6 +210,7 @@ function replaceStringVarsWithEnv(str) {
                         execs[app] = null;
                     } catch (error) {
                         console.error(colors.red(`Error while killing PID${execs[app].pid}`));
+                        console.log(error);
                     }
                 }
 
@@ -303,6 +304,7 @@ function replaceStringVarsWithEnv(str) {
                             console.log("KILLING", execs[app].pid, String(result));
                         } catch (error) {
                             console.error(colors.red(`Error while killing PID${execs[app].pid}`));
+                            console.log(error);
                         }
                     }
                 })
