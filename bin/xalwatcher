@@ -84,7 +84,7 @@ regeneratorRuntime.mark(function _callee2() {
 
           try {
             draw = function draw() {
-              console.log("".concat(_colors.default.bold(_colors.default.green("XALWatcher")), " v0.1.3 PID").concat(process.pid));
+              console.log("".concat(_colors.default.bold(_colors.default.green("XALWatcher")), " v0.1.4 PID").concat(process.pid));
               console.log("".concat(_colors.default.bold("Watching"), ": ").concat(config[OPTION_PATH]));
               console.log();
               console.log("".concat(_colors.default.bold("Last changed files:")));
@@ -188,7 +188,10 @@ regeneratorRuntime.mark(function _callee2() {
                             }
                           }
 
-                          if (appConfig.when.not) {}
+                          if (appConfig.when.not) {
+                            // TODO
+                            shouldExecute = true;
+                          }
 
                           if (shouldExecute) {
                             _context.next = 8;

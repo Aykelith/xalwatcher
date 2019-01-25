@@ -155,7 +155,7 @@ function replaceStringVarsWithEnv(str) {
         let appsWithIgnoreChangesFlag = [];
 
         function draw() {
-            console.log(`${colors.bold(colors.green("XALWatcher"))} v0.1.3 PID${process.pid}`);
+            console.log(`${colors.bold(colors.green("XALWatcher"))} v0.1.4 PID${process.pid}`);
             console.log(`${colors.bold("Watching")}: ${config[OPTION_PATH]}`);
             console.log();
             console.log(`${colors.bold("Last changed files:")}`);
@@ -249,7 +249,8 @@ function replaceStringVarsWithEnv(str) {
                     }
 
                     if (appConfig.when.not) {
-                        
+                        // TODO
+                        shouldExecute = true;
                     }
 
                     if (!shouldExecute) return;
