@@ -23,6 +23,26 @@ function replaceStringVarsWithEnv(str) {
     return str;
 }
 
+function replaceAllVarsInConfig(config) {
+    if (!config) return null;
+
+    if (Array.isArray(config)) {
+        for (let i=0, length = config.length; i < length; ++i) {
+            config[i] = replaceAllVarsInConfig(config[i]);
+            console.log("RAVIC", config.length, i, config[i]);
+        }
+    } else if (typeof config == "object") {
+        Object.keys(config).forEach(option => {
+            config[option] = replaceAllVarsInConfig(config[option]);
+        })
+    } else if (typeof config == "string") {
+        console.log("RAVIC", "String", config, replaceStringVarsWithEnv(config));
+        return replaceStringVarsWithEnv(config);
+    }
+
+    return config;
+}
+
 (async () => {
     function sleep(ms){
         return new Promise(resolve=>{
@@ -69,6 +89,11 @@ function replaceStringVarsWithEnv(str) {
                 process.exit(1);
             }
         });
+
+        // Replace with env vars
+        config = replaceAllVarsInConfig(config);
+
+        console.log(config);
 
         // Set the working directory to the directory that contains the config file
         process.chdir(path.dirname(argv.config));
@@ -155,7 +180,7 @@ function replaceStringVarsWithEnv(str) {
         let appsWithIgnoreChangesFlag = [];
 
         function draw() {
-            console.log(`${colors.bold(colors.green("XALWatcher"))} v0.1.4 PID${process.pid}`);
+            console.log(`${colors.bold(colors.green("XALWatcher"))} v0.1.5 PID${process.pid}`);
             console.log(`${colors.bold("Watching")}: ${config[OPTION_PATH]}`);
             console.log();
             console.log(`${colors.bold("Last changed files:")}`);
@@ -236,21 +261,24 @@ function replaceStringVarsWithEnv(str) {
                     let shouldExecute = false;
 
                     if (appConfig.when.changed) {
-                        for (let i=0; i < appConfig.when.changed.length && !shouldExecute; ++i) {
+                        for (let i=0, length = appConfig.when.changed.length; i < length && !shouldExecute; ++i) {
                             shouldExecute = root.startsWith(appConfig.when.changed[i]);
                         }
                     }
                     
 
                     if (!shouldExecute && appConfig.when.addedOrDeleted && eventType == 'rename') {
-                        for (let i=0; i < appConfig.when.addedOrDeleted.length && !shouldExecute; ++i) {
+                        for (let i=0, length = appConfig.when.addedOrDeleted.length; i < length && !shouldExecute; ++i) {
                             shouldExecute = root.startsWith(appConfig.when.addedOrDeleted[i]);
                         }
                     }
 
                     if (appConfig.when.not) {
-                        // TODO
                         shouldExecute = true;
+                        for (let i=0, length = appConfig.when.not.length; i < length && shouldExecute; ++i) {
+                            console.log("NOT", root, appConfig.when.not[i], !root.startsWith(appConfig.when.not[i]));
+                            shouldExecute = !root.startsWith(appConfig.when.not[i]);
+                        }
                     }
 
                     if (!shouldExecute) return;

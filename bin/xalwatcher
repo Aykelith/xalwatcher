@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 "use strict";
 
+require("core-js/modules/es7.symbol.async-iterator");
+
+require("core-js/modules/es6.symbol");
+
 require("core-js/modules/es6.date.now");
 
 require("core-js/modules/es6.string.starts-with");
@@ -11,8 +15,6 @@ require("core-js/modules/es6.string.bold");
 
 require("core-js/modules/es6.object.assign");
 
-require("core-js/modules/es6.array.is-array");
-
 require("core-js/modules/es6.regexp.split");
 
 require("core-js/modules/es7.array.includes");
@@ -22,6 +24,8 @@ require("core-js/modules/es6.string.includes");
 require("core-js/modules/es6.promise");
 
 require("regenerator-runtime/runtime");
+
+require("core-js/modules/es6.array.is-array");
 
 require("core-js/modules/es6.regexp.replace");
 
@@ -51,6 +55,8 @@ function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try
 
 function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
 
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
 var argv = require("yargs").option("config", {
   alias: "c",
   demandOption: true,
@@ -67,10 +73,30 @@ function replaceStringVarsWithEnv(str) {
   return str;
 }
 
+function replaceAllVarsInConfig(config) {
+  if (!config) return null;
+
+  if (Array.isArray(config)) {
+    for (var i = 0, length = config.length; i < length; ++i) {
+      config[i] = replaceAllVarsInConfig(config[i]);
+      console.log("RAVIC", config.length, i, config[i]);
+    }
+  } else if (_typeof(config) == "object") {
+    Object.keys(config).forEach(function (option) {
+      config[option] = replaceAllVarsInConfig(config[option]);
+    });
+  } else if (typeof config == "string") {
+    console.log("RAVIC", "String", config, replaceStringVarsWithEnv(config));
+    return replaceStringVarsWithEnv(config);
+  }
+
+  return config;
+}
+
 _asyncToGenerator(
 /*#__PURE__*/
 regeneratorRuntime.mark(function _callee2() {
-  var sleep, draw, waitForThenSpawn, spawnApp, execute, onChanged, watchForEach, onExit, config, OPTION_PATH, OPTION_IGNORE, OPTION_BEFORE, OPTION_EXECUTE, OPTION_ENV, OPTION_ONCE, requiredOptions, allOptions, i, APPS_KEYS, _i, key, filesHistory, execs, appsWithIgnoreChangesFlag, lastChangedFilenameDate, _i5, length, _key;
+  var sleep, draw, waitForThenSpawn, spawnApp, execute, onChanged, watchForEach, onExit, config, OPTION_PATH, OPTION_IGNORE, OPTION_BEFORE, OPTION_EXECUTE, OPTION_ENV, OPTION_ONCE, requiredOptions, allOptions, i, APPS_KEYS, _i, key, filesHistory, execs, appsWithIgnoreChangesFlag, lastChangedFilenameDate, _i6, length, _key;
 
   return regeneratorRuntime.wrap(function _callee2$(_context2) {
     while (1) {
@@ -84,7 +110,7 @@ regeneratorRuntime.mark(function _callee2() {
 
           try {
             draw = function draw() {
-              console.log("".concat(_colors.default.bold(_colors.default.green("XALWatcher")), " v0.1.4 PID").concat(process.pid));
+              console.log("".concat(_colors.default.bold(_colors.default.green("XALWatcher")), " v0.1.5 PID").concat(process.pid));
               console.log("".concat(_colors.default.bold("Watching"), ": ").concat(config[OPTION_PATH]));
               console.log();
               console.log("".concat(_colors.default.bold("Last changed files:")));
@@ -161,7 +187,7 @@ regeneratorRuntime.mark(function _callee2() {
                 var _ref2 = _asyncToGenerator(
                 /*#__PURE__*/
                 regeneratorRuntime.mark(function _callee(app) {
-                  var appConfig, shouldExecute, _i3, _i4;
+                  var appConfig, shouldExecute, _i3, length, _i4, _length, _i5, _length2;
 
                   return regeneratorRuntime.wrap(function _callee$(_context) {
                     while (1) {
@@ -177,20 +203,24 @@ regeneratorRuntime.mark(function _callee2() {
                           shouldExecute = false;
 
                           if (appConfig.when.changed) {
-                            for (_i3 = 0; _i3 < appConfig.when.changed.length && !shouldExecute; ++_i3) {
+                            for (_i3 = 0, length = appConfig.when.changed.length; _i3 < length && !shouldExecute; ++_i3) {
                               shouldExecute = root.startsWith(appConfig.when.changed[_i3]);
                             }
                           }
 
                           if (!shouldExecute && appConfig.when.addedOrDeleted && eventType == 'rename') {
-                            for (_i4 = 0; _i4 < appConfig.when.addedOrDeleted.length && !shouldExecute; ++_i4) {
+                            for (_i4 = 0, _length = appConfig.when.addedOrDeleted.length; _i4 < _length && !shouldExecute; ++_i4) {
                               shouldExecute = root.startsWith(appConfig.when.addedOrDeleted[_i4]);
                             }
                           }
 
                           if (appConfig.when.not) {
-                            // TODO
                             shouldExecute = true;
+
+                            for (_i5 = 0, _length2 = appConfig.when.not.length; _i5 < _length2 && shouldExecute; ++_i5) {
+                              console.log("NOT", root, appConfig.when.not[_i5], !root.startsWith(appConfig.when.not[_i5]));
+                              shouldExecute = !root.startsWith(appConfig.when.not[_i5]);
+                            }
                           }
 
                           if (shouldExecute) {
@@ -351,7 +381,10 @@ regeneratorRuntime.mark(function _callee2() {
                 console.error("The option \"".concat(option, "\" from config is missing"));
                 process.exit(1);
               }
-            }); // Set the working directory to the directory that contains the config file
+            }); // Replace with env vars
+
+            config = replaceAllVarsInConfig(config);
+            console.log(config); // Set the working directory to the directory that contains the config file
 
             process.chdir(_path.default.dirname(argv.config)); // Check if there are unknown options in the config
 
@@ -469,9 +502,9 @@ regeneratorRuntime.mark(function _callee2() {
             draw();
 
             if (config[OPTION_ONCE]) {
-              for (_i5 = 0, length = config[OPTION_ONCE].length; _i5 < length; ++_i5) {
-                _key = Object.keys(config[OPTION_ONCE][_i5]);
-                spawnApp(_key, config[OPTION_ONCE][_i5][_key]);
+              for (_i6 = 0, length = config[OPTION_ONCE].length; _i6 < length; ++_i6) {
+                _key = Object.keys(config[OPTION_ONCE][_i6]);
+                spawnApp(_key, config[OPTION_ONCE][_i6][_key]);
               }
             }
 
