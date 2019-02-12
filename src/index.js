@@ -235,25 +235,6 @@ function replaceAllVarsInConfig(config) {
         }
 
         function execute(filename, root, eventType) {
-            APPS_KEYS.forEach(app => {
-                if (execs[app]) {
-                    try {
-                        execs[app].isClosing = true;
-
-                        console.log(colors.green(`Killing app ${app}[${execs[app].pid}]\n`));
-                        process.kill(-execs[app].pid);
-                    } catch (error) {
-                        try {
-                            process.kill(execs[app].pid);
-                        } catch (error2) {
-                            console.error(colors.red(`Error while killing ${app}[${execs[app].pid}]`));
-                            console.log(error);
-                            console.log(error2);
-                        }
-                    }
-                }
-            });
-
             APPS_KEYS.forEach(async app => {
                 let appConfig = config[OPTION_EXECUTE][app];
 
@@ -286,6 +267,23 @@ function replaceAllVarsInConfig(config) {
 
                 if (config[OPTION_EXECUTE][app].ignoreChangesWhileRunning) {
                     appsWithIgnoreChangesFlag.push(app);
+                }
+
+                if (execs[app]) {
+                    try {
+                        execs[app].isClosing = true;
+
+                        console.log(colors.green(`Killing app ${app}[${execs[app].pid}]\n`));
+                        process.kill(-execs[app].pid);
+                    } catch (error) {
+                        try {
+                            process.kill(execs[app].pid);
+                        } catch (error2) {
+                            console.error(colors.red(`Error while killing ${app}[${execs[app].pid}]`));
+                            console.log(error);
+                            console.log(error2);
+                        }
+                    }
                 }
 
                 while (true) {

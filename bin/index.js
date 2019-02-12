@@ -164,23 +164,6 @@ regeneratorRuntime.mark(function _callee2() {
             };
 
             execute = function execute(filename, root, eventType) {
-              APPS_KEYS.forEach(function (app) {
-                if (execs[app]) {
-                  try {
-                    execs[app].isClosing = true;
-                    console.log(_colors.default.green("Killing app ".concat(app, "[").concat(execs[app].pid, "]\n")));
-                    process.kill(-execs[app].pid);
-                  } catch (error) {
-                    try {
-                      process.kill(execs[app].pid);
-                    } catch (error2) {
-                      console.error(_colors.default.red("Error while killing ".concat(app, "[").concat(execs[app].pid, "]")));
-                      console.log(error);
-                      console.log(error2);
-                    }
-                  }
-                }
-              });
               APPS_KEYS.forEach(
               /*#__PURE__*/
               function () {
@@ -235,32 +218,48 @@ regeneratorRuntime.mark(function _callee2() {
                             appsWithIgnoreChangesFlag.push(app);
                           }
 
-                        case 9:
+                          if (execs[app]) {
+                            try {
+                              execs[app].isClosing = true;
+                              console.log(_colors.default.green("Killing app ".concat(app, "[").concat(execs[app].pid, "]\n")));
+                              process.kill(-execs[app].pid);
+                            } catch (error) {
+                              try {
+                                process.kill(execs[app].pid);
+                              } catch (error2) {
+                                console.error(_colors.default.red("Error while killing ".concat(app, "[").concat(execs[app].pid, "]")));
+                                console.log(error);
+                                console.log(error2);
+                              }
+                            }
+                          }
+
+                        case 10:
                           if (!true) {
-                            _context.next = 22;
+                            _context.next = 23;
                             break;
                           }
 
-                          _context.prev = 10;
+                          _context.prev = 11;
                           process.kill(execs[app].pid, 0);
-                          _context.next = 14;
+                          _context.next = 15;
                           return sleep(250);
 
-                        case 14:
-                          _context.next = 20;
+                        case 15:
+                          _context.next = 21;
                           break;
 
-                        case 16:
-                          _context.prev = 16;
-                          _context.t0 = _context["catch"](10);
+                        case 17:
+                          _context.prev = 17;
+                          _context.t0 = _context["catch"](11);
                           execs[app] = null;
-                          return _context.abrupt("break", 22);
+                          return _context.abrupt("break", 23);
 
-                        case 20:
-                          _context.next = 9;
+                        case 21:
+                          _context.next = 10;
                           break;
 
-                        case 22:
+                        case 23:
                           if (appConfig.waitFor) {
                             console.log(_colors.default.yellow("Before launching ".concat(app, " we are waiting for ").concat(appConfig.waitFor.join(","), " to finish...")));
                             waitForThenSpawn(app, appConfig, appConfig.waitFor);
@@ -268,12 +267,12 @@ regeneratorRuntime.mark(function _callee2() {
                             spawnApp(app, appConfig);
                           }
 
-                        case 23:
+                        case 24:
                         case "end":
                           return _context.stop();
                       }
                     }
-                  }, _callee, this, [[10, 16]]);
+                  }, _callee, this, [[11, 17]]);
                 }));
 
                 return function (_x) {
