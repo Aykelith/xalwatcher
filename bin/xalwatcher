@@ -139,9 +139,10 @@ regeneratorRuntime.mark(function _callee2() {
             spawnApp = function spawnApp(app, appConfig) {
               execs[app] = (0, _child_process.spawn)(appConfig.run, [], {
                 env: process.env,
-                shell: true,
+                shell: process.env.XALWATCHER_SHELL || true,
                 cwd: process.cwd(),
-                detached: true
+                detached: true,
+                windowsHide: process.env.XALWATCHER_WINDOWSHIDE || true
               });
               console.log(_colors.default.green("Launched app ".concat(app, "[").concat(execs[app].pid, "]: ").concat(appConfig.run)));
               execs[app].stdout.on('data', function (data) {
@@ -170,7 +171,7 @@ regeneratorRuntime.mark(function _callee2() {
                 var _ref2 = _asyncToGenerator(
                 /*#__PURE__*/
                 regeneratorRuntime.mark(function _callee(app) {
-                  var appConfig, shouldExecute, _i3, length, _i4, _length, _i5, _length2;
+                  var appConfig, shouldExecute, filePath, _i3, length, _i4, _length, _i5, _length2;
 
                   return regeneratorRuntime.wrap(function _callee$(_context) {
                     while (1) {
@@ -179,41 +180,45 @@ regeneratorRuntime.mark(function _callee2() {
                           appConfig = config[OPTION_EXECUTE][app];
 
                           if (!(filename !== undefined && appConfig.when)) {
-                            _context.next = 8;
+                            _context.next = 10;
                             break;
                           }
 
                           shouldExecute = false;
+                          filePath = _path.default.join(root, filename);
+                          console.log(app, "root", root, "filename", filename);
 
                           if (appConfig.when.changed) {
                             for (_i3 = 0, length = appConfig.when.changed.length; _i3 < length && !shouldExecute; ++_i3) {
-                              shouldExecute = root.startsWith(appConfig.when.changed[_i3]);
+                              console.log(app, "changed", _i3, appConfig.when.changed[_i3], filePath.startsWith(appConfig.when.changed[_i3]));
+                              shouldExecute = filePath.startsWith(appConfig.when.changed[_i3]);
                             }
                           }
 
                           if (!shouldExecute && appConfig.when.addedOrDeleted && eventType == 'rename') {
                             for (_i4 = 0, _length = appConfig.when.addedOrDeleted.length; _i4 < _length && !shouldExecute; ++_i4) {
-                              shouldExecute = root.startsWith(appConfig.when.addedOrDeleted[_i4]);
+                              console.log(app, "addedOrDeleted", _i4, appConfig.when.addedOrDeleted[_i4], filePath.startsWith(appConfig.when.addedOrDeleted[_i4]));
+                              shouldExecute = filePath.startsWith(appConfig.when.addedOrDeleted[_i4]);
                             }
                           }
 
-                          if (appConfig.when.not) {
+                          if (!shouldExecute && appConfig.when.not) {
                             shouldExecute = true;
 
                             for (_i5 = 0, _length2 = appConfig.when.not.length; _i5 < _length2 && shouldExecute; ++_i5) {
-                              console.log("NOT", root, appConfig.when.not[_i5], !root.startsWith(appConfig.when.not[_i5]));
-                              shouldExecute = !root.startsWith(appConfig.when.not[_i5]);
+                              console.log(app, "not", _i5, appConfig.when.not[_i5], !filePath.startsWith(appConfig.when.not[_i5]));
+                              shouldExecute = !filePath.startsWith(appConfig.when.not[_i5]);
                             }
                           }
 
                           if (shouldExecute) {
-                            _context.next = 8;
+                            _context.next = 10;
                             break;
                           }
 
                           return _context.abrupt("return");
 
-                        case 8:
+                        case 10:
                           if (config[OPTION_EXECUTE][app].ignoreChangesWhileRunning) {
                             appsWithIgnoreChangesFlag.push(app);
                           }
@@ -234,32 +239,32 @@ regeneratorRuntime.mark(function _callee2() {
                             }
                           }
 
-                        case 10:
+                        case 12:
                           if (!true) {
-                            _context.next = 23;
+                            _context.next = 25;
                             break;
                           }
 
-                          _context.prev = 11;
+                          _context.prev = 13;
                           process.kill(execs[app].pid, 0);
-                          _context.next = 15;
+                          _context.next = 17;
                           return sleep(250);
 
-                        case 15:
-                          _context.next = 21;
-                          break;
-
                         case 17:
-                          _context.prev = 17;
-                          _context.t0 = _context["catch"](11);
-                          execs[app] = null;
-                          return _context.abrupt("break", 23);
-
-                        case 21:
-                          _context.next = 10;
+                          _context.next = 23;
                           break;
+
+                        case 19:
+                          _context.prev = 19;
+                          _context.t0 = _context["catch"](13);
+                          execs[app] = null;
+                          return _context.abrupt("break", 25);
 
                         case 23:
+                          _context.next = 12;
+                          break;
+
+                        case 25:
                           if (appConfig.waitFor) {
                             console.log(_colors.default.yellow("Before launching ".concat(app, " we are waiting for ").concat(appConfig.waitFor.join(","), " to finish...")));
                             waitForThenSpawn(app, appConfig, appConfig.waitFor);
@@ -267,12 +272,12 @@ regeneratorRuntime.mark(function _callee2() {
                             spawnApp(app, appConfig);
                           }
 
-                        case 24:
+                        case 26:
                         case "end":
                           return _context.stop();
                       }
                     }
-                  }, _callee, this, [[11, 17]]);
+                  }, _callee, this, [[13, 19]]);
                 }));
 
                 return function (_x) {

@@ -206,9 +206,10 @@ function replaceAllVarsInConfig(config) {
         function spawnApp(app, appConfig) {
             execs[app] = spawn(appConfig.run, [], { 
                 env: process.env, 
-                shell: true,
+                shell: process.env.XALWATCHER_SHELL || true,
                 cwd: process.cwd(),
-                detached: true
+                detached: true,
+                windowsHide: process.env.XALWATCHER_WINDOWSHIDE || true
             });
 
             console.log(colors.green(`Launched app ${app}[${execs[app].pid}]: ${appConfig.run}`));
@@ -241,24 +242,30 @@ function replaceAllVarsInConfig(config) {
                 if (filename !== undefined && appConfig.when) {
                     let shouldExecute = false;
 
+                    const filePath = path.join(root, filename);
+
+                    console.log(app, "root", root, "filename", filename);
+
                     if (appConfig.when.changed) {
                         for (let i=0, length = appConfig.when.changed.length; i < length && !shouldExecute; ++i) {
-                            shouldExecute = root.startsWith(appConfig.when.changed[i]);
+                            console.log(app, "changed", i, appConfig.when.changed[i], filePath.startsWith(appConfig.when.changed[i]));
+                            shouldExecute = filePath.startsWith(appConfig.when.changed[i]);
                         }
                     }
                     
 
                     if (!shouldExecute && appConfig.when.addedOrDeleted && eventType == 'rename') {
                         for (let i=0, length = appConfig.when.addedOrDeleted.length; i < length && !shouldExecute; ++i) {
-                            shouldExecute = root.startsWith(appConfig.when.addedOrDeleted[i]);
+                            console.log(app, "addedOrDeleted", i, appConfig.when.addedOrDeleted[i], filePath.startsWith(appConfig.when.addedOrDeleted[i]));
+                            shouldExecute = filePath.startsWith(appConfig.when.addedOrDeleted[i]);
                         }
                     }
 
-                    if (appConfig.when.not) {
+                    if (!shouldExecute && appConfig.when.not) {
                         shouldExecute = true;
                         for (let i=0, length = appConfig.when.not.length; i < length && shouldExecute; ++i) {
-                            console.log("NOT", root, appConfig.when.not[i], !root.startsWith(appConfig.when.not[i]));
-                            shouldExecute = !root.startsWith(appConfig.when.not[i]);
+                            console.log(app, "not", i, appConfig.when.not[i], !filePath.startsWith(appConfig.when.not[i]));
+                            shouldExecute = !filePath.startsWith(appConfig.when.not[i]);
                         }
                     }
 
